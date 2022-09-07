@@ -1,0 +1,33 @@
+syntax = "proto3";
+package mudchain.customtransfer;
+
+// this line is used by starport scaffolding # proto/tx/import
+import "cosmos/base/v1beta1/coin.proto";
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/evmos/evmos/v6/x/customtransfer/types";
+
+// Msg defines the Msg service.
+service Msg {
+      rpc SendOrder(MsgSendOrder) returns (MsgSendOrderResponse);
+// this line is used by starport scaffolding # proto/tx/rpc
+}
+
+message MsgSendOrder {
+  string creator = 1;
+  string port = 2;
+  string channelID = 3;
+  uint64 timeoutTimestamp = 4;
+  string receiver = 5;
+  string pair = 6;
+  cosmos.base.v1beta1.Coin token = 7 [(gogoproto.nullable) = false];
+  string denom = 8;
+  string direction = 9;
+  string price = 10;
+  string threshold = 11;
+  string senderaddress = 12;
+}
+
+message MsgSendOrderResponse {
+}
+// this line is used by starport scaffolding # proto/tx/message

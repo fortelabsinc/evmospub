@@ -135,6 +135,11 @@ import (
 	"github.com/evmos/evmos/v6/x/vesting"
 	vestingkeeper "github.com/evmos/evmos/v6/x/vesting/keeper"
 	vestingtypes "github.com/evmos/evmos/v6/x/vesting/types"
+
+	// "github.com/evmos/evmos/v6/docs"
+	customtransfermodule  "github.com/evmos/evmos/v6/x/customtransfer" //./x/customtransfer"
+	customtransfermodulekeeper "github.com/evmos/evmos/v6/x/customtransfer/keeper"
+	customtransfermoduletypes "github.com/evmos/evmos/v6/x/customtransfer/types"
 )
 
 func init() {
@@ -194,6 +199,7 @@ var (
 		epochs.AppModuleBasic{},
 		claims.AppModuleBasic{},
 		recovery.AppModuleBasic{},
+		customtransfermodule.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -204,6 +210,7 @@ var (
 		stakingtypes.NotBondedPoolName: {authtypes.Burner, authtypes.Staking},
 		govtypes.ModuleName:            {authtypes.Burner},
 		ibctransfertypes.ModuleName:    {authtypes.Minter, authtypes.Burner},
+		customtransfermoduletypes.ModuleName: {authtypes.Minter, authtypes.Burner, authtypes.Staking},
 		evmtypes.ModuleName:            {authtypes.Minter, authtypes.Burner}, // used for secure addition and subtraction of balance using module account
 		inflationtypes.ModuleName:      {authtypes.Minter},
 		erc20types.ModuleName:          {authtypes.Minter, authtypes.Burner},
@@ -262,6 +269,9 @@ type Evmos struct {
 	// make scoped keepers public for test purposes
 	ScopedIBCKeeper      capabilitykeeper.ScopedKeeper
 	ScopedTransferKeeper capabilitykeeper.ScopedKeeper
+
+	ScopedCustomtransferKeeper capabilitykeeper.ScopedKeeper
+	CustomtransferKeeper       customtransfermodulekeeper.Keeper
 
 	// Ethermint keepers
 	EvmKeeper       *evmkeeper.Keeper
@@ -323,6 +333,7 @@ func NewEvmos(
 		distrtypes.StoreKey, slashingtypes.StoreKey,
 		govtypes.StoreKey, paramstypes.StoreKey, upgradetypes.StoreKey,
 		evidencetypes.StoreKey, capabilitytypes.StoreKey,
+		customtransfermoduletypes.StoreKey,
 		feegrant.StoreKey, authzkeeper.StoreKey,
 		// ibc keys
 		ibchost.StoreKey, ibctransfertypes.StoreKey,
@@ -358,6 +369,9 @@ func NewEvmos(
 
 	scopedIBCKeeper := app.CapabilityKeeper.ScopeToModule(ibchost.ModuleName)
 	scopedTransferKeeper := app.CapabilityKeeper.ScopeToModule(ibctransfertypes.ModuleName)
+
+	scopedCustomtransferKeeper := app.CapabilityKeeper.ScopeToModule(customtransfermoduletypes.ModuleName)
+	app.ScopedCustomtransferKeeper = scopedCustomtransferKeeper
 
 	// Applications that wish to enforce statically created ScopedKeepers should call `Seal` after creating
 	// their scoped modules in `NewApp` with `ScopeToModule`
@@ -449,6 +463,19 @@ func NewEvmos(
 		app.AccountKeeper, app.BankKeeper, app.StakingKeeper,
 	)
 
+	app.CustomtransferKeeper = *customtransfermodulekeeper.NewKeeper(
+		appCodec,
+		keys[customtransfermoduletypes.StoreKey],
+		keys[customtransfermoduletypes.MemStoreKey],
+		app.GetSubspace(customtransfermoduletypes.ModuleName),
+		app.IBCKeeper.ChannelKeeper,
+		&app.IBCKeeper.PortKeeper,
+		scopedCustomtransferKeeper,
+		app.TransferKeeper,
+		app.BankKeeper,
+	)
+	customtransferModule := customtransfermodule.NewAppModule(appCodec, app.CustomtransferKeeper, app.AccountKeeper, app.BankKeeper)
+
 	app.Erc20Keeper = erc20keeper.NewKeeper(
 		keys[erc20types.StoreKey], appCodec, app.GetSubspace(erc20types.ModuleName),
 		app.AccountKeeper, app.BankKeeper, app.EvmKeeper,
@@ -528,6 +555,7 @@ func NewEvmos(
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := porttypes.NewRouter()
 	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferStack)
+	ibcRouter.AddRoute(customtransfermoduletypes.ModuleName, customtransferModule)
 	app.IBCKeeper.SetRouter(ibcRouter)
 
 	// create evidence keeper with router
@@ -568,6 +596,7 @@ func NewEvmos(
 		// ibc modules
 		ibc.NewAppModule(app.IBCKeeper),
 		transferModule,
+		customtransferModule,
 		// Ethermint app modules
 		evm.NewAppModule(app.EvmKeeper, app.AccountKeeper),
 		feemarket.NewAppModule(app.FeeMarketKeeper),
@@ -609,6 +638,7 @@ func NewEvmos(
 		authz.ModuleName,
 		feegrant.ModuleName,
 		paramstypes.ModuleName,
+		customtransfermoduletypes.ModuleName,
 		vestingtypes.ModuleName,
 		inflationtypes.ModuleName,
 		erc20types.ModuleName,
@@ -641,6 +671,7 @@ func NewEvmos(
 		feegrant.ModuleName,
 		paramstypes.ModuleName,
 		upgradetypes.ModuleName,
+		customtransfermoduletypes.ModuleName,
 		// Evmos modules
 		vestingtypes.ModuleName,
 		inflationtypes.ModuleName,
@@ -677,6 +708,7 @@ func NewEvmos(
 		ibctransfertypes.ModuleName,
 		authz.ModuleName,
 		feegrant.ModuleName,
+		customtransfermoduletypes.ModuleName,
 		paramstypes.ModuleName,
 		upgradetypes.ModuleName,
 		// Evmos modules
@@ -996,6 +1028,7 @@ func initParamsKeeper(
 	paramsKeeper.Subspace(crisistypes.ModuleName)
 	paramsKeeper.Subspace(ibctransfertypes.ModuleName)
 	paramsKeeper.Subspace(ibchost.ModuleName)
+	paramsKeeper.Subspace(customtransfermoduletypes.ModuleName)
 	// ethermint subspaces
 	paramsKeeper.Subspace(evmtypes.ModuleName)
 	paramsKeeper.Subspace(feemarkettypes.ModuleName)
