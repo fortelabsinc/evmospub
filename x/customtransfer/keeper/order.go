@@ -63,6 +63,7 @@ func (k Keeper) TransmitOrderPacket(
 	timeoutHeight clienttypes.Height,
 	timeoutTimestamp uint64,
 ) error {
+	log := ctx.Logger()
 
 	sourceChannelEnd, found := k.ChannelKeeper.GetChannel(ctx, sourcePort, sourceChannel)
 	if !found {
@@ -91,15 +92,20 @@ func (k Keeper) TransmitOrderPacket(
 	// NOTE: denomination and hex hash correctness checked during msg.ValidateBasic
 	fullDenomPath := packetData.Denom //could be packetData.token.Denom (if we send sdk.Coin as token within packetData)
 
+	
 	var err error
-
+	log.Info("*************FULL DENOM FETCH START**********")
 	// deconstruct the token denomination into the denomination trace info
 	// to determine if the sender is the source chain
-	if strings.HasPrefix(packetData.Denom, "ibc/") {
+	if isIBCToken(packetData.Denom) {
+		log.Info("LLL*************ITS AN IBC TOKEN**********")
 		fullDenomPath, err = k.DenomPathFromHash(ctx, packetData.Denom)
 		if err != nil {
+			log.Info("LLL*************FULL DENOM ERROR**********")
 			return err
 		}
+	} else {
+		log.Info("LLL**** NOT IBC TOKEN")
 	}
 
 	labels := []metrics.Label{
@@ -117,7 +123,11 @@ func (k Keeper) TransmitOrderPacket(
 		return err
 	}
 
-	log := ctx.Logger()
+	
+	log.Info("LLL*************IN IF**********")
+	log.Info("LLL**************VALIDATE THINGS HERE**********")
+	log.Info(fmt.Sprintf("LLL*fullDenomPath %s", fullDenomPath))
+	log.Info("LLL**************END IF**********")
 
 	if ibctransfertypes.SenderChainIsSource(sourcePort, sourceChannel, fullDenomPath) {
 		labels = append(labels, telemetry.NewLabel(coretypes.LabelSource, "true"))
@@ -125,13 +135,13 @@ func (k Keeper) TransmitOrderPacket(
 		// create the escrow address for the tokens
 		escrowAddress := ibctransfertypes.GetEscrowAddress(sourcePort, sourceChannel)
 
-
-		log.Info(fmt.Sprintf("ADDDDRRRRRR1 %v", packetData.Senderaddress))
-		log.Info(fmt.Sprintf("ADDDDRRRRRR2 %v", sender))
+		log.Info("LLL**************ESCROW**************")
+		log.Info("LLL**************** %s", escrowAddress)
+		log.Info("LLL**************ESCROW**************")
 		
-		
-		log.Info(fmt.Sprintf("ADDDDRRRRRR3 %v", k.bankKeeper.GetBalance(ctx, sender, token.Denom)))
-
+		log.Info(fmt.Sprintf("LLL*ADDDDRRRRRR1 %v", packetData.Senderaddress))
+		log.Info(fmt.Sprintf("LLL*ADDDDRRRRRR2 %v", sender))
+		log.Info(fmt.Sprintf("LLL*ADDDDRRRRRR3 %v", k.bankKeeper.GetBalance(ctx, sender, token.Denom)))
 		// escrow source tokens. It fails if balance insufficient.
 		if err := k.bankKeeper.SendCoins(
 			ctx, sender, escrowAddress, sdk.NewCoins(token),
@@ -140,6 +150,9 @@ func (k Keeper) TransmitOrderPacket(
 		}
 
 	} else {
+		log.Info("LLL**************SENDER CHAIN IS NOT SOURCE**************")
+		log.Info("LLL**************SENDER CHAIN IS NOT SOURCE**************")
+
 		labels = append(labels, telemetry.NewLabel(coretypes.LabelSource, "false"))
 
 		// transfer the coins to the module account and burn them
@@ -214,17 +227,20 @@ func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, d
 	if err := data.ValidateBasic(); err != nil {
 		return packetAck, err
 	}
-
+	
+	log.Info(fmt.Sprintf("Arrived Order 233 %v", data))
 	if !k.transferKeeper.GetReceiveEnabled(ctx) {
+		log.Info("RECEIVE NOT ENABLED")
 		return packetAck, ibctransfertypes.ErrReceiveDisabled
 	}
+	log.Info("Arrived order 2")
 
 	// decode the receiver address
 	receiver, err := sdk.AccAddressFromBech32(data.Receiver)
 	if err != nil {
 		return packetAck, err
 	}
-
+	log.Info("Arrived order 22")
 	// parse the transfer amount
 	transferAmount, ok := sdk.NewIntFromString(data.Amount)
 	if !ok {
@@ -235,7 +251,7 @@ func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, d
 		telemetry.NewLabel(coretypes.LabelSourcePort, packet.GetSourcePort()),
 		telemetry.NewLabel(coretypes.LabelSourceChannel, packet.GetSourceChannel()),
 	}
-
+	log.Info(fmt.Sprintf("Arrived Order 4 %v", data))
 	// This is the prefix that would have been prefixed to the denomination
 	// on sender chain IF and only if the token originally came from the
 	// receiving chain.
@@ -246,7 +262,7 @@ func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, d
 
 	if ibctransfertypes.ReceiverChainIsSource(packet.GetSourcePort(), packet.GetSourceChannel(), data.Denom) {
 		// sender chain is not the source, unescrow tokens
-
+		log.Info(fmt.Sprintf("Arrived Order 4 %v", packet))
 		// remove prefix added by sender chain
 		voucherPrefix := ibctransfertypes.GetDenomPrefix(packet.GetSourcePort(), packet.GetSourceChannel())
 		unprefixedDenom := data.Denom[len(voucherPrefix):]
@@ -257,6 +273,7 @@ func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, d
 		// The denomination used to send the coins is either the native denom or the hash of the path
 		// if the denomination is not native.
 		denomTrace := ibctransfertypes.ParseDenomTrace(unprefixedDenom)
+		log.Info(fmt.Sprintf("Arrived Order 5 denomTrace %v", unprefixedDenom))
 		if denomTrace.Path != "" {
 			denom = denomTrace.IBCDenom()
 		}
@@ -294,6 +311,7 @@ func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, d
 			)
 		}()
 
+		log.Info(fmt.Sprintf("Arrived Order 6 escrowAddress %s", escrowAddress))
 		return packetAck, nil
 	}
 
@@ -304,11 +322,22 @@ func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, d
 	// NOTE: sourcePrefix contains the trailing "/"
 	prefixedDenom := sourcePrefix + data.Denom
 
+	log.Info("LLL* Starting the denom trace setup")
+	
 	// construct the denomination trace from the full raw denomination
 	denomTrace := ibctransfertypes.ParseDenomTrace(prefixedDenom)
 
+	log.Info(fmt.Sprintf("LLL* denomTrace ->  %v", denomTrace))
+	
 	traceHash := denomTrace.Hash()
+
+	log.Info(fmt.Sprintf("LLL* traceHash ->  %v", traceHash))
+	
+	log.Info(fmt.Sprintf("LLL* denomTrace %v", denomTrace))
+
+	log.Info(fmt.Sprintf("LLL* GOING TO SET DENOM TRACE ->  %v", traceHash))
 	if !k.transferKeeper.HasDenomTrace(ctx, traceHash) {
+		log.Info(fmt.Sprintf("LLL* STARTING TO SET DENOM TRACE ->  %v", traceHash))
 		k.transferKeeper.SetDenomTrace(ctx, denomTrace)
 	}
 
@@ -455,18 +484,60 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 // component.
 func (k Keeper) DenomPathFromHash(ctx sdk.Context, denom string) (string, error) {
 	// trim the denomination prefix, by default "ibc/"
-	hexHash := denom[len(ibctransfertypes.DenomPrefix+"/"):]
+	log := ctx.Logger()
+	hexHash := "C895F3BFC922EAF1428A10D4DBF530D253EA986760B0D29A09670F6F5A4E62A8"
 
 	hash, err := ibctransfertypes.ParseHexHash(hexHash)
+	log.Info(fmt.Sprintf("LLL***************** PARSING START DENOM %s", denom))
+	log.Info(fmt.Sprintf("LLL***************** PARSING START HASH %s", hash))
+
 	if err != nil {
+		log.Info("LLL***************** PARSING ERROR 1")
 		return "", sdkerrors.Wrap(ibctransfertypes.ErrInvalidDenomForTransfer, err.Error())
 	}
+	log.Info("LLL***************** PARSING GETTING DENOM TRACE")
 
 	denomTrace, found := k.transferKeeper.GetDenomTrace(ctx, hash)
+
+	log.Info("LLL***************** PARSING START 2 %s", denomTrace)
+
 	if !found {
+		log.Info("LLL***************** PARSING ERROR 2 NOT FOUND")
 		return "", sdkerrors.Wrap(ibctransfertypes.ErrTraceNotFound, hexHash)
 	}
+	log.Info("LLL***************** PARSING SUCCESS")
 
 	fullDenomPath := denomTrace.GetFullDenomPath()
 	return fullDenomPath, nil
+}
+
+func isIBCToken(denom string) bool {
+  return strings.HasPrefix(denom, "ibc/")
+}
+
+// func (k Keeper) SaveVoucherDenom(ctx sdk.Context, port string, channel string, denom string) {
+// 	voucher := VoucherDenom(port, channel, denom)
+
+// 	// Store the origin denom
+// 	_, saved := k.transferKeeper.GetDenomTrace(ctx, voucher)
+// 	if !saved {
+// 			k.transferKeeper.SetDenomTrace(ctx, ibctransfertypes.DenomTrace{
+					
+// 			})
+// 	}
+// }
+
+// x/dex/keeper/denom.go
+
+func VoucherDenom(port string, channel string, denom string) string {
+  // since SendPacket did not prefix the denomination, we must prefix denomination here
+  sourcePrefix := ibctransfertypes.GetDenomPrefix(port, channel)
+
+  // NOTE: sourcePrefix contains the trailing "/"
+  prefixedDenom := sourcePrefix + denom
+
+  // construct the denomination trace from the full raw denomination
+  denomTrace := ibctransfertypes.ParseDenomTrace(prefixedDenom)
+  voucher := denomTrace.IBCDenom()
+  return voucher[:16]
 }
