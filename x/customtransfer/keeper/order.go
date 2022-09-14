@@ -136,7 +136,7 @@ func (k Keeper) TransmitOrderPacket(
 		escrowAddress := ibctransfertypes.GetEscrowAddress(sourcePort, sourceChannel)
 
 		log.Info("LLL**************ESCROW**************")
-		log.Info("LLL**************** %s", escrowAddress)
+		log.Info(fmt.Sprintf("LLL**************** %s", escrowAddress))
 		log.Info("LLL**************ESCROW**************")
 		
 		log.Info(fmt.Sprintf("LLL*ADDDDRRRRRR1 %v", packetData.Senderaddress))
@@ -485,11 +485,11 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 func (k Keeper) DenomPathFromHash(ctx sdk.Context, denom string) (string, error) {
 	// trim the denomination prefix, by default "ibc/"
 	log := ctx.Logger()
-	hexHash := "C895F3BFC922EAF1428A10D4DBF530D253EA986760B0D29A09670F6F5A4E62A8"
+	hexHash := denom[len(ibctransfertypes.DenomPrefix+"/"):]
 
 	hash, err := ibctransfertypes.ParseHexHash(hexHash)
 	log.Info(fmt.Sprintf("LLL***************** PARSING START DENOM %s", denom))
-	log.Info(fmt.Sprintf("LLL***************** PARSING START HASH %s", hash))
+	log.Info(fmt.Sprintf("LLL***************** PARSING START HASH %v", hash))
 
 	if err != nil {
 		log.Info("LLL***************** PARSING ERROR 1")
@@ -499,7 +499,7 @@ func (k Keeper) DenomPathFromHash(ctx sdk.Context, denom string) (string, error)
 
 	denomTrace, found := k.transferKeeper.GetDenomTrace(ctx, hash)
 
-	log.Info("LLL***************** PARSING START 2 %s", denomTrace)
+	log.Info("LLL***************** PARSING START 2 %v", denomTrace)
 
 	if !found {
 		log.Info("LLL***************** PARSING ERROR 2 NOT FOUND")
