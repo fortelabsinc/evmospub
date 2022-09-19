@@ -25,8 +25,9 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 // GenesisState defines the customtransfer module's genesis state.
 type GenesisState struct {
-	Params Params `protobuf:"bytes,1,opt,name=params,proto3" json:"params"`
-	PortId string `protobuf:"bytes,2,opt,name=port_id,json=portId,proto3" json:"port_id,omitempty"`
+	Params         Params       `protobuf:"bytes,1,opt,name=params,proto3" json:"params"`
+	PortId         string       `protobuf:"bytes,2,opt,name=port_id,json=portId,proto3" json:"port_id,omitempty"`
+	DenomTraceList []DenomTrace `protobuf:"bytes,3,rep,name=denomTraceList,proto3" json:"denomTraceList"`
 }
 
 func (m *GenesisState) Reset()         { *m = GenesisState{} }
@@ -76,6 +77,13 @@ func (m *GenesisState) GetPortId() string {
 	return ""
 }
 
+func (m *GenesisState) GetDenomTraceList() []DenomTrace {
+	if m != nil {
+		return m.DenomTraceList
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*GenesisState)(nil), "mudchain.customtransfer.GenesisState")
 }
@@ -119,6 +127,20 @@ func (m *GenesisState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if len(m.DenomTraceList) > 0 {
+		for iNdEx := len(m.DenomTraceList) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.DenomTraceList[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintGenesis(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
 	if len(m.PortId) > 0 {
 		i -= len(m.PortId)
 		copy(dAtA[i:], m.PortId)
@@ -161,6 +183,12 @@ func (m *GenesisState) Size() (n int) {
 	l = len(m.PortId)
 	if l > 0 {
 		n += 1 + l + sovGenesis(uint64(l))
+	}
+	if len(m.DenomTraceList) > 0 {
+		for _, e := range m.DenomTraceList {
+			l = e.Size()
+			n += 1 + l + sovGenesis(uint64(l))
+		}
 	}
 	return n
 }
@@ -264,6 +292,40 @@ func (m *GenesisState) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.PortId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DenomTraceList", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DenomTraceList = append(m.DenomTraceList, DenomTrace{})
+			if err := m.DenomTraceList[len(m.DenomTraceList)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

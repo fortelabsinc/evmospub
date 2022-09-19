@@ -4,16 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/evmos/evmos/v6/x/customtransfer/types"
-	"strings"
+	"strconv"
 
-	"github.com/armon/go-metrics"
-	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
 	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
 	host "github.com/cosmos/ibc-go/v3/modules/core/24-host"
-	coretypes "github.com/cosmos/ibc-go/v3/modules/core/types"
 
 	// ibctransferkeeper "github.com/cosmos/ibc-go/v3/modules/apps/transfer/keeper"
 	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
@@ -63,8 +60,7 @@ func (k Keeper) TransmitOrderPacket(
 	timeoutHeight clienttypes.Height,
 	timeoutTimestamp uint64,
 ) error {
-	log := ctx.Logger()
-
+	// ibc code we can ignore start
 	sourceChannelEnd, found := k.ChannelKeeper.GetChannel(ctx, sourcePort, sourceChannel)
 	if !found {
 		return sdkerrors.Wrapf(channeltypes.ErrChannelNotFound, "port ID (%s) channel ID (%s)", sourcePort, sourceChannel)
@@ -82,97 +78,13 @@ func (k Keeper) TransmitOrderPacket(
 		)
 	}
 
-	// begin createOutgoingPacket logic
-	// See spec for this logic: https://github.com/cosmos/ibc/tree/master/spec/app/ics-020-fungible-token-transfer#packet-relay
 	channelCap, ok := k.ScopedKeeper.GetCapability(ctx, host.ChannelCapabilityPath(sourcePort, sourceChannel))
 	if !ok {
 		return sdkerrors.Wrap(channeltypes.ErrChannelCapabilityNotFound, "module does not own channel capability")
 	}
-
-	// NOTE: denomination and hex hash correctness checked during msg.ValidateBasic
-	fullDenomPath := packetData.Denom //could be packetData.token.Denom (if we send sdk.Coin as token within packetData)
-
 	
-	var err error
-	log.Info("*************FULL DENOM FETCH START**********")
-	// deconstruct the token denomination into the denomination trace info
-	// to determine if the sender is the source chain
-	if isIBCToken(packetData.Denom) {
-		log.Info("LLL*************ITS AN IBC TOKEN**********")
-		fullDenomPath, err = k.DenomPathFromHash(ctx, packetData.Denom)
-		if err != nil {
-			log.Info("LLL*************FULL DENOM ERROR**********")
-			return err
-		}
-	} else {
-		log.Info("LLL**** NOT IBC TOKEN")
-	}
-
-	labels := []metrics.Label{
-		telemetry.NewLabel(coretypes.LabelDestinationPort, destinationPort),
-		telemetry.NewLabel(coretypes.LabelDestinationChannel, destinationChannel),
-	}
-
-	// NOTE: SendTransfer simply sends the denomination as it exists on its own
-	// chain inside the packet data. The receiving chain will perform denom
-	// prefixing as necessary.
-
-	// decode the sender address
-	sender, err := sdk.AccAddressFromBech32(packetData.Senderaddress)
-	if err != nil {
-		return err
-	}
-
-	
-	log.Info("LLL*************IN IF**********")
-	log.Info("LLL**************VALIDATE THINGS HERE**********")
-	log.Info(fmt.Sprintf("LLL*fullDenomPath %s", fullDenomPath))
-	log.Info("LLL**************END IF**********")
-
-	if ibctransfertypes.SenderChainIsSource(sourcePort, sourceChannel, fullDenomPath) {
-		labels = append(labels, telemetry.NewLabel(coretypes.LabelSource, "true"))
-
-		// create the escrow address for the tokens
-		escrowAddress := ibctransfertypes.GetEscrowAddress(sourcePort, sourceChannel)
-
-		log.Info("LLL**************ESCROW**************")
-		log.Info(fmt.Sprintf("LLL**************** %s", escrowAddress))
-		log.Info("LLL**************ESCROW**************")
-		
-		log.Info(fmt.Sprintf("LLL*ADDDDRRRRRR1 %v", packetData.Senderaddress))
-		log.Info(fmt.Sprintf("LLL*ADDDDRRRRRR2 %v", sender))
-		log.Info(fmt.Sprintf("LLL*ADDDDRRRRRR3 %v", k.bankKeeper.GetBalance(ctx, sender, token.Denom)))
-		// escrow source tokens. It fails if balance insufficient.
-		if err := k.bankKeeper.SendCoins(
-			ctx, sender, escrowAddress, sdk.NewCoins(token),
-		); err != nil {
-			return err
-		}
-
-	} else {
-		log.Info("LLL**************SENDER CHAIN IS NOT SOURCE**************")
-		log.Info("LLL**************SENDER CHAIN IS NOT SOURCE**************")
-
-		labels = append(labels, telemetry.NewLabel(coretypes.LabelSource, "false"))
-
-		// transfer the coins to the module account and burn them
-		if err := k.bankKeeper.SendCoinsFromAccountToModule(
-			ctx, sender, types.ModuleName, sdk.NewCoins(token),
-		); err != nil {
-			return err
-		}
-
-		if err := k.bankKeeper.BurnCoins(
-			ctx, types.ModuleName, sdk.NewCoins(token),
-		); err != nil {
-			// NOTE: should not happen as the module account was
-			// retrieved on the step above and it has enough balace
-			// to burn.
-			panic(fmt.Sprintf("cannot burn coins after a successful send to a module account: %v", err))
-		}
-	}
-
 	packetBytes, err := packetData.GetBytes()
+
 	if err != nil {
 		return sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, "cannot marshal the packet: "+err.Error())
 	}
@@ -188,26 +100,10 @@ func (k Keeper) TransmitOrderPacket(
 		timeoutTimestamp,
 	)
 
+
 	if err := k.ChannelKeeper.SendPacket(ctx, channelCap, packet); err != nil {
 		return err
 	}
-
-	defer func() {
-		if token.Amount.IsInt64() {
-			telemetry.SetGaugeWithLabels(
-				[]string{"tx", "msg", "ibc", "transfer"},
-				float32(token.Amount.Int64()),
-				[]metrics.Label{telemetry.NewLabel(coretypes.LabelDenom, fullDenomPath)},
-			)
-		}
-
-		telemetry.IncrCounterWithLabels(
-			[]string{"ibc", types.ModuleName, "send"},
-			1,
-			labels,
-		)
-	}()
-
 	return nil
 }
 
@@ -221,171 +117,49 @@ func (k Keeper) TransmitOrderPacket(
 func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, data types.OrderPacketData) (packetAck types.OrderPacketAck, err error) {
 	log := ctx.Logger()
 
-	log.Info(fmt.Sprintf("Arrived Order %v", data))
-	
+	log.Info(fmt.Sprintf("CustomTransfer module: arrived order %v", data))
+	log.Info(fmt.Sprintf("CustomTransfer module: arrived packet %v", packet))
+
+
 	// validate packet data upon receiving
 	if err := data.ValidateBasic(); err != nil {
 		return packetAck, err
 	}
-	
-	log.Info(fmt.Sprintf("Arrived Order 233 %v", data))
-	if !k.transferKeeper.GetReceiveEnabled(ctx) {
-		log.Info("RECEIVE NOT ENABLED")
-		return packetAck, ibctransfertypes.ErrReceiveDisabled
-	}
-	log.Info("Arrived order 2")
 
+	// if !k.transferKeeper.GetReceiveEnabled(ctx) {
+	// 	return packetAck, ibctransfertypes.ErrReceiveDisabled
+	// }
+
+	finalAmountDenom, saved := k.OriginalDenom(ctx, packet.DestinationPort, packet.DestinationChannel, data.Denom)
+	if !saved {
+		// If it was not from this chain we use voucher as denom
+		finalAmountDenom = VoucherDenom(ctx, packet.SourcePort, packet.SourceChannel, data.Denom)
+		k.SaveVoucherDenom(ctx, packet.SourcePort, packet.SourceChannel, data.Denom)
+	}
+	
+	log.Info(fmt.Sprintf("finalAmountDenom %s", finalAmountDenom))
+	// Dispatch liquidated swapping orders
 	// decode the receiver address
 	receiver, err := sdk.AccAddressFromBech32(data.Receiver)
 	if err != nil {
 		return packetAck, err
 	}
-	log.Info("Arrived order 22")
-	// parse the transfer amount
-	transferAmount, ok := sdk.NewIntFromString(data.Amount)
-	if !ok {
-		return packetAck, sdkerrors.Wrapf(ibctransfertypes.ErrInvalidAmount, "unable to parse transfer amount (%s) into sdk.Int", data.Amount)
-	}
 
-	labels := []metrics.Label{
-		telemetry.NewLabel(coretypes.LabelSourcePort, packet.GetSourcePort()),
-		telemetry.NewLabel(coretypes.LabelSourceChannel, packet.GetSourceChannel()),
-	}
-	log.Info(fmt.Sprintf("Arrived Order 4 %v", data))
-	// This is the prefix that would have been prefixed to the denomination
-	// on sender chain IF and only if the token originally came from the
-	// receiving chain.
-	//
-	// NOTE: We use SourcePort and SourceChannel here, because the counterparty
-	// chain would have prefixed with DestPort and DestChannel when originally
-	// receiving this coin as seen in the "sender chain is the source" condition.
-
-	if ibctransfertypes.ReceiverChainIsSource(packet.GetSourcePort(), packet.GetSourceChannel(), data.Denom) {
-		// sender chain is not the source, unescrow tokens
-		log.Info(fmt.Sprintf("Arrived Order 4 %v", packet))
-		// remove prefix added by sender chain
-		voucherPrefix := ibctransfertypes.GetDenomPrefix(packet.GetSourcePort(), packet.GetSourceChannel())
-		unprefixedDenom := data.Denom[len(voucherPrefix):]
-
-		// coin denomination used in sending from the escrow address
-		denom := unprefixedDenom
-
-		// The denomination used to send the coins is either the native denom or the hash of the path
-		// if the denomination is not native.
-		denomTrace := ibctransfertypes.ParseDenomTrace(unprefixedDenom)
-		log.Info(fmt.Sprintf("Arrived Order 5 denomTrace %v", unprefixedDenom))
-		if denomTrace.Path != "" {
-			denom = denomTrace.IBCDenom()
-		}
-		token := sdk.NewCoin(denom, transferAmount)
-
-		if k.bankKeeper.BlockedAddr(receiver) {
-			return packetAck, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "%s is not allowed to receive funds", receiver)
-		}
-
-		// unescrow tokens
-		escrowAddress := ibctransfertypes.GetEscrowAddress(packet.GetDestPort(), packet.GetDestChannel())
-		if err := k.bankKeeper.SendCoins(ctx, escrowAddress, receiver, sdk.NewCoins(token)); err != nil {
-			// NOTE: this error is only expected to occur given an unexpected bug or a malicious
-			// counterparty module. The bug may occur in bank or any part of the code that allows
-			// the escrow address to be drained. A malicious counterparty module could drain the
-			// escrow address by allowing more tokens to be sent back then were escrowed.
-			return packetAck, sdkerrors.Wrap(err, "unable to unescrow tokens, this may be caused by a malicious counterparty module or a bug: please open an issue on counterparty module")
-		}
-
-		defer func() {
-			if transferAmount.IsInt64() {
-				telemetry.SetGaugeWithLabels(
-					[]string{"ibc", types.ModuleName, "packet", "receive"},
-					float32(transferAmount.Int64()),
-					[]metrics.Label{telemetry.NewLabel(coretypes.LabelDenom, unprefixedDenom)},
-				)
-			}
-
-			telemetry.IncrCounterWithLabels(
-				[]string{"ibc", types.ModuleName, "receive"},
-				1,
-				append(
-					labels, telemetry.NewLabel(coretypes.LabelSource, "true"),
-				),
-			)
-		}()
-
-		log.Info(fmt.Sprintf("Arrived Order 6 escrowAddress %s", escrowAddress))
-		return packetAck, nil
-	}
-
-	// sender chain is the source, mint vouchers
-
-	// since SendPacket did not prefix the denomination, we must prefix denomination here
-	sourcePrefix := ibctransfertypes.GetDenomPrefix(packet.GetDestPort(), packet.GetDestChannel())
-	// NOTE: sourcePrefix contains the trailing "/"
-	prefixedDenom := sourcePrefix + data.Denom
-
-	log.Info("LLL* Starting the denom trace setup")
-	
-	// construct the denomination trace from the full raw denomination
-	denomTrace := ibctransfertypes.ParseDenomTrace(prefixedDenom)
-
-	log.Info(fmt.Sprintf("LLL* denomTrace ->  %v", denomTrace))
-	
-	traceHash := denomTrace.Hash()
-
-	log.Info(fmt.Sprintf("LLL* traceHash ->  %v", traceHash))
-	
-	log.Info(fmt.Sprintf("LLL* denomTrace %v", denomTrace))
-
-	log.Info(fmt.Sprintf("LLL* GOING TO SET DENOM TRACE ->  %v", traceHash))
-	if !k.transferKeeper.HasDenomTrace(ctx, traceHash) {
-		log.Info(fmt.Sprintf("LLL* STARTING TO SET DENOM TRACE ->  %v", traceHash))
-		k.transferKeeper.SetDenomTrace(ctx, denomTrace)
-	}
-
-	voucherDenom := denomTrace.IBCDenom()
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			ibctransfertypes.EventTypeDenomTrace,
-			sdk.NewAttribute(ibctransfertypes.AttributeKeyTraceHash, traceHash.String()),
-			sdk.NewAttribute(ibctransfertypes.AttributeKeyDenom, voucherDenom),
-		),
-	)
-	voucher := sdk.NewCoin(voucherDenom, transferAmount)
-
-	// mint new tokens if the source of the transfer is the same chain
-	if err := k.bankKeeper.MintCoins(
-		ctx, types.ModuleName, sdk.NewCoins(voucher),
+	amount, _ := strconv.ParseInt(data.Amount, 0, 32)
+	if err := k.SafeMint(
+		ctx,
+		packet.DestinationPort,
+		packet.DestinationChannel,
+		receiver,
+		finalAmountDenom,
+		amount,
 	); err != nil {
 		return packetAck, err
 	}
 
-	// send to receiver
-	if err := k.bankKeeper.SendCoinsFromModuleToAccount(
-		ctx, types.ModuleName, receiver, sdk.NewCoins(voucher),
-	); err != nil {
-		return packetAck, err
-	}
+	// Add the order list here maybe to confirm that order was received
 
-	defer func() {
-		if transferAmount.IsInt64() {
-			telemetry.SetGaugeWithLabels(
-				[]string{"ibc", types.ModuleName, "packet", "receive"},
-				float32(transferAmount.Int64()),
-				[]metrics.Label{telemetry.NewLabel(coretypes.LabelDenom, data.Denom)},
-			)
-		}
-
-		telemetry.IncrCounterWithLabels(
-			[]string{"ibc", types.ModuleName, "receive"},
-			1,
-			append(
-				labels, telemetry.NewLabel(coretypes.LabelSource, "false"),
-			),
-		)
-	}()
-
-	// TODO: packet reception logic
-
-	return packetAck, err
+	return packetAck, err	
 }
 
 // OnAcknowledgementOrderPacket responds to the the success or failure of a packet
@@ -511,33 +285,3 @@ func (k Keeper) DenomPathFromHash(ctx sdk.Context, denom string) (string, error)
 	return fullDenomPath, nil
 }
 
-func isIBCToken(denom string) bool {
-  return strings.HasPrefix(denom, "ibc/")
-}
-
-// func (k Keeper) SaveVoucherDenom(ctx sdk.Context, port string, channel string, denom string) {
-// 	voucher := VoucherDenom(port, channel, denom)
-
-// 	// Store the origin denom
-// 	_, saved := k.transferKeeper.GetDenomTrace(ctx, voucher)
-// 	if !saved {
-// 			k.transferKeeper.SetDenomTrace(ctx, ibctransfertypes.DenomTrace{
-					
-// 			})
-// 	}
-// }
-
-// x/dex/keeper/denom.go
-
-func VoucherDenom(port string, channel string, denom string) string {
-  // since SendPacket did not prefix the denomination, we must prefix denomination here
-  sourcePrefix := ibctransfertypes.GetDenomPrefix(port, channel)
-
-  // NOTE: sourcePrefix contains the trailing "/"
-  prefixedDenom := sourcePrefix + denom
-
-  // construct the denomination trace from the full raw denomination
-  denomTrace := ibctransfertypes.ParseDenomTrace(prefixedDenom)
-  voucher := denomTrace.IBCDenom()
-  return voucher[:16]
-}

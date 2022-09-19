@@ -3,6 +3,7 @@ package mudblocks.customtransfer;
 
 import "gogoproto/gogo.proto";
 import "customtransfer/params.proto";
+import "customtransfer/denom_trace.proto";
 // this line is used by starport scaffolding # genesis/proto/import
 
 option go_package = "github.com/evmos/evmos/v6/x/customtransfer/types";
@@ -11,5 +12,6 @@ option go_package = "github.com/evmos/evmos/v6/x/customtransfer/types";
 message GenesisState {
   Params params = 1 [(gogoproto.nullable) = false];
   string port_id = 2;
+  repeated DenomTrace denomTraceList = 3 [(gogoproto.nullable) = false];
   // this line is used by starport scaffolding # genesis/proto/state
 }

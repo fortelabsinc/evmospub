@@ -16,6 +16,15 @@ service Query {
     option (google.api.http).get = "/mudchain/customtransfer/params";
   }
   // this line is used by starport scaffolding # 2
+    // Queries a DenomTrace by index.
+	rpc DenomTrace(QueryGetDenomTraceRequest) returns (QueryGetDenomTraceResponse) {
+		option (google.api.http).get = "/mudchain/customtransfer/denom_trace/{index}";
+	}
+
+	// Queries a list of DenomTrace items.
+	rpc DenomTraceAll(QueryAllDenomTraceRequest) returns (QueryAllDenomTraceResponse) {
+		option (google.api.http).get = "/mudchain/customtransfer/denom_trace";
+	}
 }
 
 // QueryParamsRequest is request type for the Query/Params RPC method.
@@ -28,3 +37,20 @@ message QueryParamsResponse {
 }
 
 // this line is used by starport scaffolding # 3
+message QueryGetDenomTraceRequest {
+  string index = 1;
+
+}
+
+message QueryGetDenomTraceResponse {
+DenomTrace denomTrace = 1 [(gogoproto.nullable) = false];
+}
+
+message QueryAllDenomTraceRequest {
+cosmos.base.query.v1beta1.PageRequest pagination = 1;
+}
+
+message QueryAllDenomTraceResponse {
+repeated DenomTrace denomTrace = 1 [(gogoproto.nullable) = false];
+cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
