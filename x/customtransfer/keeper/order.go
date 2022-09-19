@@ -137,7 +137,7 @@ func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, d
 		k.SaveVoucherDenom(ctx, packet.SourcePort, packet.SourceChannel, data.Denom)
 	}
 	
-	log.Info(fmt.Sprintf("finalAmountDenom %s", finalAmountDenom))
+	// log.Info(fmt.Sprintf("finalAmountDenom %s", finalAmountDenom))
 	// Dispatch liquidated swapping orders
 	// decode the receiver address
 	receiver, err := sdk.AccAddressFromBech32(data.Receiver)

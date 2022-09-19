@@ -2,9 +2,10 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 	"github.com/evmos/evmos/v6/x/customtransfer/types"
 	"strconv"
-	
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
 )
@@ -20,13 +21,16 @@ func (k msgServer) SendOrder(goCtx context.Context, msg *types.MsgSendOrder) (*t
 
 	amount, _ := strconv.ParseInt(msg.Token.Amount.String(), 0, 32)
 	log.Info("**** Burning or locking the coins ***")
+	log.Info(fmt.Sprintf("**** Receiver %s", msg.Receiver))
 
 	if err := k.SafeBurn(ctx, msg.Port, msg.ChannelID, sender ,msg.Token.Denom, amount)
 	err != nil {
 		return nil, err
 	}
 
-	k.SaveVoucherDenom(ctx, msg.Port, msg.ChannelID, msg.Token.Denom)
+	if !isIBCToken(msg.Token.Denom) {
+		k.SaveVoucherDenom(ctx, msg.Port, msg.ChannelID, msg.Token.Denom)
+	}
 	// Construct the packet
 	var packet types.OrderPacketData
 
@@ -50,8 +54,9 @@ func (k msgServer) SendOrder(goCtx context.Context, msg *types.MsgSendOrder) (*t
 		msg.TimeoutTimestamp,
 	)
 	if err != nil {
+		log.Info("TRASMITTED THE PACKET FAILED")
 		return nil, err
 	}
-
+	log.Info("TRASMITTED THE PACKET DONE")
 	return &types.MsgSendOrderResponse{}, nil
 }

@@ -128,7 +128,8 @@ func (am AppModule) OnRecvPacket(
 	relayer sdk.AccAddress,
 ) ibcexported.Acknowledgement {
 	var ack channeltypes.Acknowledgement
-
+	log := ctx.Logger()
+	log.Info("************* WE RECEIVE THE PACKET IN MUDCHAIN ***")
 	// this line is used by starport scaffolding # oracle/packet/module/recv
 
 	var modulePacketData types.CustomtransferPacketData
