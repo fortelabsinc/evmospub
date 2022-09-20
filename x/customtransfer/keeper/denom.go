@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+
 	"github.com/evmos/evmos/v6/x/customtransfer/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -29,10 +30,11 @@ func (k Keeper) SaveVoucherDenom(ctx sdk.Context, port string, channel string, d
 func VoucherDenom(ctx sdk.Context, port string, channel string, denom string) string {
 	if denom == "mud" {
 		return "ibc/090E16A61076"
-	} 
+	}
+	
 	if denom == "src" {
 		return "ibc/18D18C4D3426"
-	} 
+	}
 
 	log := ctx.Logger()
 	log.Info("*************************")
@@ -66,11 +68,16 @@ func VoucherDenom(ctx sdk.Context, port string, channel string, denom string) st
 //   port: customtransfer
 
 func (k Keeper) OriginalDenom(ctx sdk.Context, port string, channel string, voucher string) (string, bool) {
-	if voucher == "ibc/090E16A61076" {
+	if voucher == "mud" {
 		return "mud", true
 	}
+	
 	if voucher == "ibc/18D18C4D3426" {
 		return "src", true
+	}
+
+	if voucher == "src" {
+		return "ibc/18D18C4D3426", false
 	}
 
 	trace, exist := k.GetDenomTrace(ctx, voucher)

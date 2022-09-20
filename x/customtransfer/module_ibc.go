@@ -237,6 +237,9 @@ func (am AppModule) OnTimeoutPacket(
 	modulePacket channeltypes.Packet,
 	relayer sdk.AccAddress,
 ) error {
+	log := ctx.Logger()
+
+	log.Info("**** PACKET IS TIMING OUT 11****")
 	var modulePacketData types.CustomtransferPacketData
 	if err := modulePacketData.Unmarshal(modulePacket.GetData()); err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal packet data: %s", err.Error())

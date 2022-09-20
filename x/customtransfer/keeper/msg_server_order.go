@@ -3,8 +3,9 @@ package keeper
 import (
 	"context"
 	"fmt"
-	"github.com/evmos/evmos/v6/x/customtransfer/types"
 	"strconv"
+
+	"github.com/evmos/evmos/v6/x/customtransfer/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
@@ -37,7 +38,7 @@ func (k msgServer) SendOrder(goCtx context.Context, msg *types.MsgSendOrder) (*t
 	packet.Receiver = msg.Receiver
 	packet.Pair = msg.Pair
 	packet.Amount = msg.Token.Amount.String()
-	packet.Denom = msg.Token.Denom
+	packet.Denom = getDenom(msg.Token.Denom)
 	packet.Direction = msg.Direction
 	packet.Price = msg.Price
 	packet.Threshold = msg.Threshold
@@ -59,4 +60,12 @@ func (k msgServer) SendOrder(goCtx context.Context, msg *types.MsgSendOrder) (*t
 	}
 	log.Info("TRASMITTED THE PACKET DONE")
 	return &types.MsgSendOrderResponse{}, nil
+}
+
+func getDenom(denom string) string {
+	if isIBCToken(denom) {
+		return "src"
+	} else {
+		return "mud"
+	}
 }
