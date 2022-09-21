@@ -15,13 +15,11 @@ func NewMsgSendOrder(
 	channelID string,
 	timeoutTimestamp uint64,
 	receiver string,
-	pair string,
+	instrument string,
 	token sdk.Coin,
-	denom string,
 	direction string,
 	price string,
 	threshold string,
-	senderaddress string,
 ) *MsgSendOrder {
 	return &MsgSendOrder{
 		Creator:          creator,
@@ -29,13 +27,11 @@ func NewMsgSendOrder(
 		ChannelID:        channelID,
 		TimeoutTimestamp: timeoutTimestamp,
 		Receiver:         receiver,
-		Pair:             pair,
+		Instrument:       instrument,
 		Token:            token,
-		Denom:            denom,
 		Direction:        direction,
 		Price:            price,
 		Threshold:        threshold,
-		Senderaddress:    senderaddress,
 	}
 }
 

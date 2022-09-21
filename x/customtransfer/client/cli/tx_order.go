@@ -16,9 +16,9 @@ var _ = strconv.Itoa(0)
 
 func CmdSendOrder() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "send-order [src-port] [src-channel] [receiver] [pair] [token] [denom] [direction] [price] [threshold] [senderaddress]",
+		Use:   "send-order [src-port] [src-channel] [receiver] [instrument] [token] [direction] [price] [threshold]",
 		Short: "Send a order over IBC",
-		Args:  cobra.ExactArgs(10),
+		Args:  cobra.ExactArgs(8),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx, err := client.GetClientTxContext(cmd)
 			if err != nil {
@@ -30,16 +30,14 @@ func CmdSendOrder() *cobra.Command {
 			srcChannel := args[1]
 
 			argReceiver := args[2]
-			argPair := args[3]
+			argInstrument := args[3]
 			argToken, err := sdk.ParseCoinNormalized(args[4])
 			if err != nil {
 				return err
 			}
-			argDenom := args[5]
-			argDirection := args[6]
-			argPrice := args[7]
-			argThreshold := args[8]
-			argSenderaddress := args[9]
+			argDirection := args[5]
+			argPrice := args[6]
+			argThreshold := args[7]
 
 			// Get the relative timeout timestamp
 			timeoutTimestamp, err := cmd.Flags().GetUint64(flagPacketTimeoutTimestamp)
@@ -54,7 +52,7 @@ func CmdSendOrder() *cobra.Command {
 				timeoutTimestamp = consensusState.GetTimestamp() + timeoutTimestamp
 			}
 
-			msg := types.NewMsgSendOrder(creator, srcPort, srcChannel, timeoutTimestamp, argReceiver, argPair, argToken, argDenom, argDirection, argPrice, argThreshold, argSenderaddress)
+			msg := types.NewMsgSendOrder(creator, srcPort, srcChannel, timeoutTimestamp, argReceiver, argInstrument, argToken, argDirection, argPrice, argThreshold)
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}

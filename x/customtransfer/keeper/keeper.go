@@ -5,12 +5,11 @@ import (
 
 	"github.com/tendermint/tendermint/libs/log"
 
-	"github.com/evmos/evmos/v6/x/customtransfer/types"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	"github.com/ignite/cli/ignite/pkg/cosmosibckeeper"
+	"github.com/evmos/evmos/v6/x/customtransfer/types"
 )
 
 type (
@@ -49,10 +48,10 @@ func NewKeeper(
 			portKeeper,
 			scopedKeeper,
 		),
-		cdc:        cdc,
-		storeKey:   storeKey,
-		memKey:     memKey,
-		paramstore: ps,
+		cdc:             cdc,
+		storeKey:        storeKey,
+		memKey:          memKey,
+		paramstore:      ps,
 		transferKeeper: transferKeeper,
 		bankKeeper: bankKeeper,
 	}

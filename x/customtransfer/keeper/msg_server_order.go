@@ -2,10 +2,10 @@ package keeper
 
 import (
 	"context"
-	"github.com/evmos/evmos/v6/x/customtransfer/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
+	"github.com/evmos/evmos/v6/x/customtransfer/types"
 )
 
 func (k msgServer) SendOrder(goCtx context.Context, msg *types.MsgSendOrder) (*types.MsgSendOrderResponse, error) {
@@ -17,13 +17,13 @@ func (k msgServer) SendOrder(goCtx context.Context, msg *types.MsgSendOrder) (*t
 	var packet types.OrderPacketData
 
 	packet.Receiver = msg.Receiver
-	packet.Pair = msg.Pair
-	packet.Amount = msg.Token.Amount.String()
+	packet.Instrument = msg.Instrument
 	packet.Denom = msg.Token.Denom
+	packet.Amount = msg.Token.Amount.String()
 	packet.Direction = msg.Direction
 	packet.Price = msg.Price
 	packet.Threshold = msg.Threshold
-	packet.Senderaddress = msg.Senderaddress
+	packet.Senderaddress = msg.Creator
 
 	// Transmit the packet
 	err := k.TransmitOrderPacket(

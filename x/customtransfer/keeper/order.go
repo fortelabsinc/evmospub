@@ -15,7 +15,6 @@ import (
 	host "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 	coretypes "github.com/cosmos/ibc-go/v3/modules/core/types"
 
-	// ibctransferkeeper "github.com/cosmos/ibc-go/v3/modules/apps/transfer/keeper"
 	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 )
 
@@ -89,14 +88,14 @@ func (k Keeper) TransmitOrderPacket(
 	}
 
 	// NOTE: denomination and hex hash correctness checked during msg.ValidateBasic
-	fullDenomPath := packetData.Denom //could be packetData.token.Denom (if we send sdk.Coin as token within packetData)
+	fullDenomPath := token.Denom //could be packetData.token.Denom (if we send sdk.Coin as token within packetData)
 
 	var err error
 
 	// deconstruct the token denomination into the denomination trace info
 	// to determine if the sender is the source chain
-	if strings.HasPrefix(packetData.Denom, "ibc/") {
-		fullDenomPath, err = k.DenomPathFromHash(ctx, packetData.Denom)
+	if strings.HasPrefix(token.Denom, "ibc/") {
+		fullDenomPath, err = k.DenomPathFromHash(ctx, token.Denom)
 		if err != nil {
 			return err
 		}
@@ -117,20 +116,11 @@ func (k Keeper) TransmitOrderPacket(
 		return err
 	}
 
-	log := ctx.Logger()
-
 	if ibctransfertypes.SenderChainIsSource(sourcePort, sourceChannel, fullDenomPath) {
 		labels = append(labels, telemetry.NewLabel(coretypes.LabelSource, "true"))
 
 		// create the escrow address for the tokens
 		escrowAddress := ibctransfertypes.GetEscrowAddress(sourcePort, sourceChannel)
-
-
-		log.Info(fmt.Sprintf("ADDDDRRRRRR1 %v", packetData.Senderaddress))
-		log.Info(fmt.Sprintf("ADDDDRRRRRR2 %v", sender))
-		
-		
-		log.Info(fmt.Sprintf("ADDDDRRRRRR3 %v", k.bankKeeper.GetBalance(ctx, sender, token.Denom)))
 
 		// escrow source tokens. It fails if balance insufficient.
 		if err := k.bankKeeper.SendCoins(
@@ -208,8 +198,8 @@ func (k Keeper) TransmitOrderPacket(
 func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, data types.OrderPacketData) (packetAck types.OrderPacketAck, err error) {
 	log := ctx.Logger()
 
-	log.Info(fmt.Sprintf("Arrived Order %v", data))
-	
+	log.Info(fmt.Sprintf("CustomTransfer module: arrived order %v", data))
+
 	// validate packet data upon receiving
 	if err := data.ValidateBasic(); err != nil {
 		return packetAck, err
