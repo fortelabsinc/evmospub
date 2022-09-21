@@ -1,0 +1,36 @@
+syntax = "proto3";
+package mudchain.customtransfer;
+
+// this line is used by starport scaffolding # proto/packet/import
+import "cosmos/base/v1beta1/coin.proto";
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/evmos/evmos/v6/x/customtransfer/types";
+
+message CustomtransferPacketData {
+    oneof packet {
+        NoData noData = 1;
+        // this line is used by starport scaffolding # ibc/packet/proto/field
+				OrderPacketData orderPacket = 2; // this line is used by starport scaffolding # ibc/packet/proto/field/number
+    }
+}
+
+message NoData {
+}
+
+// OrderPacketData defines a struct for the packet payload
+message OrderPacketData {
+  string receiver = 1;
+  string pair = 2;
+  string amount = 3;
+  string denom = 4;
+  string direction = 5;
+  string price = 6;
+  string threshold = 7;
+  string senderaddress = 8;
+}
+
+// OrderPacketAck defines a struct for the packet acknowledgment
+message OrderPacketAck {
+	}
+// this line is used by starport scaffolding # ibc/packet/proto/message

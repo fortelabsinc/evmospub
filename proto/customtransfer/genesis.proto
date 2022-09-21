@@ -1,0 +1,15 @@
+syntax = "proto3";
+package mudblocks.customtransfer;
+
+import "gogoproto/gogo.proto";
+import "customtransfer/params.proto";
+// this line is used by starport scaffolding # genesis/proto/import
+
+option go_package = "github.com/evmos/evmos/v6/x/customtransfer/types";
+
+// GenesisState defines the customtransfer module's genesis state.
+message GenesisState {
+  Params params = 1 [(gogoproto.nullable) = false];
+  string port_id = 2;
+  // this line is used by starport scaffolding # genesis/proto/state
+}
