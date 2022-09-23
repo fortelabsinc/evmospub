@@ -18,7 +18,7 @@ func CmdSendOrder() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "send-order [src-port] [src-channel] [receiver] [instrument] [token] [direction] [threshold]",
 		Short: "Send a order over IBC",
-		Args:  cobra.ExactArgs(8),
+		Args:  cobra.ExactArgs(7),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx, err := client.GetClientTxContext(cmd)
 			if err != nil {
