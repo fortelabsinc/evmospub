@@ -1,5 +1,5 @@
 syntax = "proto3";
-package mudchain.customtransfer;
+package mudblocks.customtransfer;
 
 import "gogoproto/gogo.proto";
 

@@ -1,5 +1,5 @@
 syntax = "proto3";
-package mudchain.customtransfer;
+package mudblocks.customtransfer;
 
 // this line is used by starport scaffolding # proto/packet/import
 import "cosmos/base/v1beta1/coin.proto";
@@ -21,16 +21,16 @@ message NoData {
 // OrderPacketData defines a struct for the packet payload
 message OrderPacketData {
   string receiver = 1;
-  string pair = 2;
+  string instrument = 2;
   string amount = 3;
   string denom = 4;
   string direction = 5;
-  string price = 6;
-  string threshold = 7;
-  string senderaddress = 8;
+  string threshold = 6;
+  string senderaddress = 7;
 }
 
 // OrderPacketAck defines a struct for the packet acknowledgment
 message OrderPacketAck {
-	}
+  string message =  1;
+}
 // this line is used by starport scaffolding # ibc/packet/proto/message

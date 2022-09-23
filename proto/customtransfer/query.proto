@@ -1,5 +1,5 @@
 syntax = "proto3";
-package mudchain.customtransfer;
+package mudblocks.customtransfer;
 
 import "gogoproto/gogo.proto";
 import "google/api/annotations.proto";
@@ -13,7 +13,7 @@ option go_package = "github.com/evmos/evmos/v6/x/customtransfer/types";
 service Query {
   // Parameters queries the parameters of the module.
   rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
-    option (google.api.http).get = "/mudchain/customtransfer/params";
+    option (google.api.http).get = "/mudblocks/customtransfer/params";
   }
   // this line is used by starport scaffolding # 2
 }

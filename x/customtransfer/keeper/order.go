@@ -55,13 +55,17 @@ import (
 
 func (k Keeper) TransmitOrderPacket(
 	ctx sdk.Context,
-	packetData types.OrderPacketData,
-	token sdk.Coin,
 	sourcePort,
 	sourceChannel string,
+	token sdk.Coin,
+	packetData types.OrderPacketData,
 	timeoutHeight clienttypes.Height,
 	timeoutTimestamp uint64,
 ) error {
+
+	if !k.transferKeeper.GetSendEnabled(ctx) {
+		return ibctransfertypes.ErrSendDisabled
+	}
 
 	sourceChannelEnd, found := k.ChannelKeeper.GetChannel(ctx, sourcePort, sourceChannel)
 	if !found {
@@ -88,7 +92,7 @@ func (k Keeper) TransmitOrderPacket(
 	}
 
 	// NOTE: denomination and hex hash correctness checked during msg.ValidateBasic
-	fullDenomPath := token.Denom //could be packetData.token.Denom (if we send sdk.Coin as token within packetData)
+	fullDenomPath := token.Denom
 
 	var err error
 
@@ -198,7 +202,7 @@ func (k Keeper) TransmitOrderPacket(
 func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, data types.OrderPacketData) (packetAck types.OrderPacketAck, err error) {
 	log := ctx.Logger()
 
-	log.Info(fmt.Sprintf("CustomTransfer module: arrived order %v", data))
+	log.Error(fmt.Sprintf("AAAAAAAAAAAAAAAAAACustomTransfer module: arrived order %v", data))
 
 	// validate packet data upon receiving
 	if err := data.ValidateBasic(); err != nil {

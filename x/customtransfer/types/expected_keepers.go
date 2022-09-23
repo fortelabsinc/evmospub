@@ -30,5 +30,6 @@ type TransferKeeper interface {
 	SetDenomTrace(ctx sdk.Context, denomTrace ibctransfertypes.DenomTrace)
 	GetDenomTrace(ctx sdk.Context, denomTraceHash tmbytes.HexBytes) (ibctransfertypes.DenomTrace, bool)
 	GetReceiveEnabled(ctx sdk.Context) bool
+	GetSendEnabled(ctx sdk.Context) bool
 	// Methods imported from bank should be defined here
 }

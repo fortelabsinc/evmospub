@@ -18,7 +18,6 @@ func NewMsgSendOrder(
 	instrument string,
 	token sdk.Coin,
 	direction string,
-	price string,
 	threshold string,
 ) *MsgSendOrder {
 	return &MsgSendOrder{
@@ -30,7 +29,6 @@ func NewMsgSendOrder(
 		Instrument:       instrument,
 		Token:            token,
 		Direction:        direction,
-		Price:            price,
 		Threshold:        threshold,
 	}
 }

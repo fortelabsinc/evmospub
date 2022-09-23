@@ -21,17 +21,16 @@ func (k msgServer) SendOrder(goCtx context.Context, msg *types.MsgSendOrder) (*t
 	packet.Denom = msg.Token.Denom
 	packet.Amount = msg.Token.Amount.String()
 	packet.Direction = msg.Direction
-	packet.Price = msg.Price
 	packet.Threshold = msg.Threshold
 	packet.Senderaddress = msg.Creator
 
 	// Transmit the packet
 	err := k.TransmitOrderPacket(
 		ctx,
-		packet,
-		msg.Token,
 		msg.Port,
 		msg.ChannelID,
+		msg.Token,
+		packet,
 		clienttypes.ZeroHeight(),
 		msg.TimeoutTimestamp,
 	)
