@@ -10,12 +10,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+
+	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
 	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
 	host "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 	coretypes "github.com/cosmos/ibc-go/v3/modules/core/types"
-
-	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 )
 
 // TransmitOrderPacket transmits the packet over IBC with the specified source port and source channel
@@ -63,9 +63,9 @@ func (k Keeper) TransmitOrderPacket(
 	timeoutTimestamp uint64,
 ) error {
 
-	if !k.transferKeeper.GetSendEnabled(ctx) {
-		return ibctransfertypes.ErrSendDisabled
-	}
+	// if !k.transferKeeper.GetSendEnabled(ctx) {
+	// 	return ibctransfertypes.ErrSendDisabled
+	// }
 
 	sourceChannelEnd, found := k.ChannelKeeper.GetChannel(ctx, sourcePort, sourceChannel)
 	if !found {
@@ -138,13 +138,13 @@ func (k Keeper) TransmitOrderPacket(
 
 		// transfer the coins to the module account and burn them
 		if err := k.bankKeeper.SendCoinsFromAccountToModule(
-			ctx, sender, types.ModuleName, sdk.NewCoins(token),
+			ctx, sender, ibctransfertypes.ModuleName, sdk.NewCoins(token),
 		); err != nil {
 			return err
 		}
 
 		if err := k.bankKeeper.BurnCoins(
-			ctx, types.ModuleName, sdk.NewCoins(token),
+			ctx, ibctransfertypes.ModuleName, sdk.NewCoins(token),
 		); err != nil {
 			// NOTE: should not happen as the module account was
 			// retrieved on the step above and it has enough balace
@@ -183,7 +183,7 @@ func (k Keeper) TransmitOrderPacket(
 		}
 
 		telemetry.IncrCounterWithLabels(
-			[]string{"ibc", types.ModuleName, "send"},
+			[]string{"ibc", ibctransfertypes.ModuleName, "send"},
 			1,
 			labels,
 		)
@@ -206,23 +206,31 @@ func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, d
 
 	// validate packet data upon receiving
 	if err := data.ValidateBasic(); err != nil {
-		return packetAck, err
+		errMessage := "error validation"
+		log.Error(errMessage)
+		return types.OrderPacketAck{Message: errMessage}, err
 	}
 
 	if !k.transferKeeper.GetReceiveEnabled(ctx) {
-		return packetAck, ibctransfertypes.ErrReceiveDisabled
+		errMessage := "error receive not enabled"
+		log.Error(errMessage)
+		return types.OrderPacketAck{Message: errMessage}, ibctransfertypes.ErrReceiveDisabled
 	}
 
 	// decode the receiver address
 	receiver, err := sdk.AccAddressFromBech32(data.Receiver)
 	if err != nil {
-		return packetAck, err
+		errMessage := fmt.Sprintf("error cannot convert to bech32 address: %s", data.Receiver)
+		log.Error(errMessage)
+		return types.OrderPacketAck{Message: errMessage}, err
 	}
 
 	// parse the transfer amount
 	transferAmount, ok := sdk.NewIntFromString(data.Amount)
 	if !ok {
-		return packetAck, sdkerrors.Wrapf(ibctransfertypes.ErrInvalidAmount, "unable to parse transfer amount (%s) into sdk.Int", data.Amount)
+		errMessage := fmt.Sprintf("error unable to parse transfer amount (%s) into sdk.Int", data.Amount)
+		log.Error(errMessage)
+		return types.OrderPacketAck{Message: errMessage}, sdkerrors.Wrapf(ibctransfertypes.ErrInvalidAmount, "unable to parse transfer amount (%s) into sdk.Int", data.Amount)
 	}
 
 	labels := []metrics.Label{
@@ -257,7 +265,9 @@ func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, d
 		token := sdk.NewCoin(denom, transferAmount)
 
 		if k.bankKeeper.BlockedAddr(receiver) {
-			return packetAck, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "%s is not allowed to receive funds", receiver)
+			errMessage := fmt.Sprintf("error %s is not allowed to receive funds", receiver)
+			log.Error(errMessage)
+			return types.OrderPacketAck{Message: errMessage}, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "%s is not allowed to receive funds", receiver)
 		}
 
 		// unescrow tokens
@@ -267,20 +277,22 @@ func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, d
 			// counterparty module. The bug may occur in bank or any part of the code that allows
 			// the escrow address to be drained. A malicious counterparty module could drain the
 			// escrow address by allowing more tokens to be sent back then were escrowed.
-			return packetAck, sdkerrors.Wrap(err, "unable to unescrow tokens, this may be caused by a malicious counterparty module or a bug: please open an issue on counterparty module")
+			errMessage := "error unable to unescrow tokens, this may be caused by a malicious counterparty module or a bug: please open an issue on counterparty module"
+			log.Error(errMessage)
+			return types.OrderPacketAck{Message: errMessage}, sdkerrors.Wrap(err, "unable to unescrow tokens, this may be caused by a malicious counterparty module or a bug: please open an issue on counterparty module")
 		}
 
 		defer func() {
 			if transferAmount.IsInt64() {
 				telemetry.SetGaugeWithLabels(
-					[]string{"ibc", types.ModuleName, "packet", "receive"},
+					[]string{"ibc", ibctransfertypes.ModuleName, "packet", "receive"},
 					float32(transferAmount.Int64()),
 					[]metrics.Label{telemetry.NewLabel(coretypes.LabelDenom, unprefixedDenom)},
 				)
 			}
 
 			telemetry.IncrCounterWithLabels(
-				[]string{"ibc", types.ModuleName, "receive"},
+				[]string{"ibc", ibctransfertypes.ModuleName, "receive"},
 				1,
 				append(
 					labels, telemetry.NewLabel(coretypes.LabelSource, "true"),
@@ -288,7 +300,9 @@ func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, d
 			)
 		}()
 
-		return packetAck, nil
+		message := fmt.Sprintf("success unescrowed tokens")
+		log.Info(message)
+	  return types.OrderPacketAck{Message: message}, nil
 	}
 
 	// sender chain is the source, mint vouchers
@@ -318,29 +332,33 @@ func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, d
 
 	// mint new tokens if the source of the transfer is the same chain
 	if err := k.bankKeeper.MintCoins(
-		ctx, types.ModuleName, sdk.NewCoins(voucher),
+		ctx, ibctransfertypes.ModuleName, sdk.NewCoins(voucher),
 	); err != nil {
-		return packetAck, err
+		errMessage := "error mint new tokens if the source of the transfer is the same chain"
+		log.Error(errMessage)
+		return types.OrderPacketAck{Message: errMessage}, err
 	}
 
 	// send to receiver
 	if err := k.bankKeeper.SendCoinsFromModuleToAccount(
-		ctx, types.ModuleName, receiver, sdk.NewCoins(voucher),
+		ctx, ibctransfertypes.ModuleName, receiver, sdk.NewCoins(voucher),
 	); err != nil {
-		return packetAck, err
+		errMessage := "error SendCoinsFromModuleToAccount"
+		log.Error(errMessage)
+		return types.OrderPacketAck{Message: errMessage}, err
 	}
 
 	defer func() {
 		if transferAmount.IsInt64() {
 			telemetry.SetGaugeWithLabels(
-				[]string{"ibc", types.ModuleName, "packet", "receive"},
+				[]string{"ibc", ibctransfertypes.ModuleName, "packet", "receive"},
 				float32(transferAmount.Int64()),
 				[]metrics.Label{telemetry.NewLabel(coretypes.LabelDenom, data.Denom)},
 			)
 		}
 
 		telemetry.IncrCounterWithLabels(
-			[]string{"ibc", types.ModuleName, "receive"},
+			[]string{"ibc", ibctransfertypes.ModuleName, "receive"},
 			1,
 			append(
 				labels, telemetry.NewLabel(coretypes.LabelSource, "false"),
@@ -348,9 +366,9 @@ func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, d
 		)
 	}()
 
-	// TODO: packet reception logic
-
-	return packetAck, err
+	message := "ok"
+	log.Info(message)
+	return types.OrderPacketAck{Message: message}, nil
 }
 
 // OnAcknowledgementOrderPacket responds to the the success or failure of a packet
@@ -433,12 +451,12 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 
 	// mint vouchers back to sender
 	if err := k.bankKeeper.MintCoins(
-		ctx, types.ModuleName, sdk.NewCoins(token),
+		ctx, ibctransfertypes.ModuleName, sdk.NewCoins(token),
 	); err != nil {
 		return err
 	}
 
-	if err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, sender, sdk.NewCoins(token)); err != nil {
+	if err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, ibctransfertypes.ModuleName, sender, sdk.NewCoins(token)); err != nil {
 		panic(fmt.Sprintf("unable to send coins from module to account despite previously minting coins to module account: %v", err))
 	}
 
