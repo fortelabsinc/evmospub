@@ -137,7 +137,7 @@ import (
 	vestingtypes "github.com/evmos/evmos/v6/x/vesting/types"
 
 	// "github.com/evmos/evmos/v6/docs"
-	customtransfermodule  "github.com/evmos/evmos/v6/x/customtransfer" //./x/customtransfer"
+	customtransfermodule  "github.com/evmos/evmos/v6/x/customtransfer"
 	customtransfermodulekeeper "github.com/evmos/evmos/v6/x/customtransfer/keeper"
 	customtransfermoduletypes "github.com/evmos/evmos/v6/x/customtransfer/types"
 )

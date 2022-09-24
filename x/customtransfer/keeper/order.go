@@ -245,7 +245,7 @@ func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, d
 	// NOTE: We use SourcePort and SourceChannel here, because the counterparty
 	// chain would have prefixed with DestPort and DestChannel when originally
 	// receiving this coin as seen in the "sender chain is the source" condition.
-
+log.Error("SOURCE PORT %s SOURCE CHANNEL %s DENOM %s ", packet.GetSourcePort(), packet.GetSourceChannel(), data.Denom)
 	if ibctransfertypes.ReceiverChainIsSource(packet.GetSourcePort(), packet.GetSourceChannel(), data.Denom) {
 		// sender chain is not the source, unescrow tokens
 

@@ -127,6 +127,8 @@ func (am AppModule) OnRecvPacket(
 	modulePacket channeltypes.Packet,
 	relayer sdk.AccAddress,
 ) ibcexported.Acknowledgement {
+	log := ctx.Logger()
+	log.Error("ARRIVATOOOOOOOOOOOO 1 :)")
 	var ack channeltypes.Acknowledgement
 
 	// this line is used by starport scaffolding # oracle/packet/module/recv
@@ -160,6 +162,8 @@ func (am AppModule) OnRecvPacket(
 		// this line is used by starport scaffolding # ibc/packet/module/recv
 	default:
 		errMsg := fmt.Sprintf("unrecognized %s packet type: %T", types.ModuleName, packet)
+		log := ctx.Logger()
+		log.Error("ARRIVATOOOOOOOOOOOO 2 :)")
 		return channeltypes.NewErrorAcknowledgement(errMsg)
 	}
 
