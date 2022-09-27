@@ -63,6 +63,9 @@ func (k Keeper) TransmitOrderPacket(
 	timeoutTimestamp uint64,
 ) error {
 
+	sourcePort1 := "transfer"
+	sourceChannel1 := "channel-1"
+
 	// if !k.transferKeeper.GetSendEnabled(ctx) {
 	// 	return ibctransfertypes.ErrSendDisabled
 	// }
@@ -124,7 +127,7 @@ func (k Keeper) TransmitOrderPacket(
 		labels = append(labels, telemetry.NewLabel(coretypes.LabelSource, "true"))
 
 		// create the escrow address for the tokens
-		escrowAddress := ibctransfertypes.GetEscrowAddress(sourcePort, sourceChannel)
+		escrowAddress := ibctransfertypes.GetEscrowAddress(sourcePort1, sourceChannel1)
 
 		// escrow source tokens. It fails if balance insufficient.
 		if err := k.bankKeeper.SendCoins(
