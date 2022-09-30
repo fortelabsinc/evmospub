@@ -88,7 +88,9 @@ sed -i 's/swagger = false/swagger = true/g' $PATH_HOME/config/app.toml && \
 cat $PATH_HOME/config/app.toml | grep swagger
 
 # Enables the api
-sed -i '/\[api\]/,/enable = false/s/enable = false/enable = true/' $PATH_HOME/config/app.toml
+if [ "$REST_API" != "false" ]; then
+  sed -i '/\[api\]/,/enable = false/s/enable = false/enable = true/' $PATH_HOME/config/app.toml
+fi
 
 # Disable CORS
 sed -i 's/enable-unsafe-cors = false/enable-unsafe-cors = true/g' $PATH_HOME/config/app.toml && \
@@ -102,10 +104,10 @@ CHAIN_MINGASPRICE="${CHAIN_MINGAS}${CHAIN_DENOM}"
 
 evmosd start $CHAIN_TRACE \
   --rpc.laddr "tcp://0.0.0.0:26659" \
-  --rpc.pprof_laddr "127.0.0.1:6061" \
+  --rpc.pprof_laddr "127.0.0.1:6060" \
   --p2p.laddr "0.0.0.0:26658" \
   --grpc.address "0.0.0.0:9092" \
-  --grpc-web.address "0.0.0.0:9093" \
+  --grpc-web.address "0.0.0.0:9091"
   --pruning "$CHAIN_PRUNING" \
   --log_level "$CHAIN_LOGLEVEL" \
   --minimum-gas-prices "$CHAIN_MINGASPRICE" \
