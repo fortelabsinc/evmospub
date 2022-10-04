@@ -1,4 +1,6 @@
-#!/bin/sh
+#!/bin/bash
+
+set -e
 
 PATH_HOME="$HOME/.evmosd"
 PATH_CFG="$PATH_HOME/config"
@@ -82,20 +84,3 @@ echo "caution also galaxy match upset cheap slow aisle alley credit place share 
 
 # Created account "bob" with address "evmos1qy47vryjvtu0exwp8q0ufelgper6ag4kxud4h0" with mnemonic: "endless suspect clump job wagon control wonder project leave dream vendor inform cry tobacco lab youth prison cereal absurd bulb toy student tissue cabbage"
 echo "endless suspect clump job wagon control wonder project leave dream vendor inform cry tobacco lab youth prison cereal absurd bulb toy student tissue cabbage" | evmosd keys add bob --recover
-
-# Enable swagger
-sed -i 's/swagger = false/swagger = true/g' $PATH_HOME/config/app.toml && \
-cat $PATH_HOME/config/app.toml | grep swagger
-
-# Enables the api
-sed -i '/\[api\]/,/enable = false/s/enable = false/enable = true/' $PATH_HOME/config/app.toml
-
-# Disable CORS
-sed -i 's/enable-unsafe-cors = false/enable-unsafe-cors = true/g' $PATH_HOME/config/app.toml && \
-cat $PATH_HOME/config/app.toml | grep cors
-sed -i 's/enabled-unsafe-cors = false/enabled-unsafe-cors = true/g' $PATH_HOME/config/app.toml && \
-cat $PATH_HOME/config/app.toml | grep cors
-sed -i 's/cors_allowed_origins = \[\]/cors_allowed_origins = \["*"\]/g' $PATH_HOME/config/config.toml && \
-cat $PATH_HOME/config/config.toml | grep cors
-
-CHAIN_MINGASPRICE="${CHAIN_MINGAS}${CHAIN_DENOM}"

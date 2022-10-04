@@ -104,7 +104,7 @@ CHAIN_MINGASPRICE="${CHAIN_MINGAS}${CHAIN_DENOM}"
 
 sed -i 's/swagger = false/swagger = true/g' $PATH_HOME/config/app.toml && \
 sed -i '/\[api\]/,/enable = false/s/enable = false/enable = true/' $PATH_HOME/config/app.toml
-sed -i 's/0.0.0.0:1317/0.0.0.0:1318/g' $PATH_HOME/config/app.toml
+# sed -i 's/0.0.0.0:1317/0.0.0.0:1318/g' $PATH_HOME/config/app.toml
 sed -i 's/0.0.0.0:9090/0.0.0.0:9092/g' $PATH_HOME/config/app.toml
 sed -i 's/0.0.0.0:26657/0.0.0.0:26659/g' $PATH_HOME/config/app.toml
 
