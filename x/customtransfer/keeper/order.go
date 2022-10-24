@@ -3,8 +3,9 @@ package keeper
 import (
 	"errors"
 	"fmt"
-	"github.com/evmos/evmos/v6/x/customtransfer/types"
 	"strings"
+
+	"github.com/evmos/evmos/v6/x/customtransfer/types"
 
 	"github.com/armon/go-metrics"
 	"github.com/cosmos/cosmos-sdk/telemetry"
@@ -236,10 +237,10 @@ func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, d
 		return types.OrderPacketAck{Message: errMessage}, sdkerrors.Wrapf(ibctransfertypes.ErrInvalidAmount, "unable to parse transfer amount (%s) into sdk.Int", data.Amount)
 	}
 
-	labels := []metrics.Label{
-		telemetry.NewLabel(coretypes.LabelSourcePort, packet.GetSourcePort()),
-		telemetry.NewLabel(coretypes.LabelSourceChannel, packet.GetSourceChannel()),
-	}
+	// labels := []metrics.Label{
+	// 	telemetry.NewLabel(coretypes.LabelSourcePort, packet.GetSourcePort()),
+	// 	telemetry.NewLabel(coretypes.LabelSourceChannel, packet.GetSourceChannel()),
+	// }
 
 	// This is the prefix that would have been prefixed to the denomination
 	// on sender chain IF and only if the token originally came from the
@@ -249,9 +250,12 @@ func (k Keeper) OnRecvOrderPacket(ctx sdk.Context, packet channeltypes.Packet, d
 	// chain would have prefixed with DestPort and DestChannel when originally
 	// receiving this coin as seen in the "sender chain is the source" condition.
 log.Error("SOURCE PORT %s SOURCE CHANNEL %s DENOM %s ", packet.GetSourcePort(), packet.GetSourceChannel(), data.Denom)
+	log.Info("Trying to get inside IF")
+
 	if ibctransfertypes.ReceiverChainIsSource(packet.GetSourcePort(), packet.GetSourceChannel(), data.Denom) {
 		// sender chain is not the source, unescrow tokens
 
+		log.Info("Inside IF")
 		// remove prefix added by sender chain
 		voucherPrefix := ibctransfertypes.GetDenomPrefix(packet.GetSourcePort(), packet.GetSourceChannel())
 		unprefixedDenom := data.Denom[len(voucherPrefix):]
@@ -265,6 +269,9 @@ log.Error("SOURCE PORT %s SOURCE CHANNEL %s DENOM %s ", packet.GetSourcePort(), 
 		if denomTrace.Path != "" {
 			denom = denomTrace.IBCDenom()
 		}
+
+		log.Info(fmt.Sprintf("Inside IF denom: %v", denom))
+
 		token := sdk.NewCoin(denom, transferAmount)
 
 		if k.bankKeeper.BlockedAddr(receiver) {
@@ -275,6 +282,9 @@ log.Error("SOURCE PORT %s SOURCE CHANNEL %s DENOM %s ", packet.GetSourcePort(), 
 
 		// unescrow tokens
 		escrowAddress := ibctransfertypes.GetEscrowAddress(packet.GetDestPort(), packet.GetDestChannel())
+
+		log.Info("Transferring the mud")
+
 		if err := k.bankKeeper.SendCoins(ctx, escrowAddress, receiver, sdk.NewCoins(token)); err != nil {
 			// NOTE: this error is only expected to occur given an unexpected bug or a malicious
 			// counterparty module. The bug may occur in bank or any part of the code that allows
@@ -285,28 +295,29 @@ log.Error("SOURCE PORT %s SOURCE CHANNEL %s DENOM %s ", packet.GetSourcePort(), 
 			return types.OrderPacketAck{Message: errMessage}, sdkerrors.Wrap(err, "unable to unescrow tokens, this may be caused by a malicious counterparty module or a bug: please open an issue on counterparty module")
 		}
 
-		defer func() {
-			if transferAmount.IsInt64() {
-				telemetry.SetGaugeWithLabels(
-					[]string{"ibc", ibctransfertypes.ModuleName, "packet", "receive"},
-					float32(transferAmount.Int64()),
-					[]metrics.Label{telemetry.NewLabel(coretypes.LabelDenom, unprefixedDenom)},
-				)
-			}
+		// defer func() {
+		// 	if transferAmount.IsInt64() {
+		// 		telemetry.SetGaugeWithLabels(
+		// 			[]string{"ibc", ibctransfertypes.ModuleName, "packet", "receive"},
+		// 			float32(transferAmount.Int64()),
+		// 			[]metrics.Label{telemetry.NewLabel(coretypes.LabelDenom, unprefixedDenom)},
+		// 		)
+		// 	}
 
-			telemetry.IncrCounterWithLabels(
-				[]string{"ibc", ibctransfertypes.ModuleName, "receive"},
-				1,
-				append(
-					labels, telemetry.NewLabel(coretypes.LabelSource, "true"),
-				),
-			)
-		}()
+		// 	telemetry.IncrCounterWithLabels(
+		// 		[]string{"ibc", ibctransfertypes.ModuleName, "receive"},
+		// 		1,
+		// 		append(
+		// 			labels, telemetry.NewLabel(coretypes.LabelSource, "true"),
+		// 		),
+		// 	)
+		// }()
 
-		message := fmt.Sprintf("success unescrowed tokens")
-		log.Info(message)
-	  return types.OrderPacketAck{Message: message}, nil
+		log.Info("success unescrowed tokens")
+	  return types.OrderPacketAck{Message: "success unescrowed tokens"}, nil
 	}
+
+		log.Info("OUTSIDE IF")
 
 	// sender chain is the source, mint vouchers
 
@@ -324,13 +335,13 @@ log.Error("SOURCE PORT %s SOURCE CHANNEL %s DENOM %s ", packet.GetSourcePort(), 
 	}
 
 	voucherDenom := denomTrace.IBCDenom()
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			ibctransfertypes.EventTypeDenomTrace,
-			sdk.NewAttribute(ibctransfertypes.AttributeKeyTraceHash, traceHash.String()),
-			sdk.NewAttribute(ibctransfertypes.AttributeKeyDenom, voucherDenom),
-		),
-	)
+	// ctx.EventManager().EmitEvent(
+	// 	sdk.NewEvent(
+	// 		ibctransfertypes.EventTypeDenomTrace,
+	// 		sdk.NewAttribute(ibctransfertypes.AttributeKeyTraceHash, traceHash.String()),
+	// 		sdk.NewAttribute(ibctransfertypes.AttributeKeyDenom, voucherDenom),
+	// 	),
+	// )
 	voucher := sdk.NewCoin(voucherDenom, transferAmount)
 
 	// mint new tokens if the source of the transfer is the same chain
@@ -351,23 +362,23 @@ log.Error("SOURCE PORT %s SOURCE CHANNEL %s DENOM %s ", packet.GetSourcePort(), 
 		return types.OrderPacketAck{Message: errMessage}, err
 	}
 
-	defer func() {
-		if transferAmount.IsInt64() {
-			telemetry.SetGaugeWithLabels(
-				[]string{"ibc", ibctransfertypes.ModuleName, "packet", "receive"},
-				float32(transferAmount.Int64()),
-				[]metrics.Label{telemetry.NewLabel(coretypes.LabelDenom, data.Denom)},
-			)
-		}
+	// defer func() {
+	// 	if transferAmount.IsInt64() {
+	// 		telemetry.SetGaugeWithLabels(
+	// 			[]string{"ibc", ibctransfertypes.ModuleName, "packet", "receive"},
+	// 			float32(transferAmount.Int64()),
+	// 			[]metrics.Label{telemetry.NewLabel(coretypes.LabelDenom, data.Denom)},
+	// 		)
+	// 	}
 
-		telemetry.IncrCounterWithLabels(
-			[]string{"ibc", ibctransfertypes.ModuleName, "receive"},
-			1,
-			append(
-				labels, telemetry.NewLabel(coretypes.LabelSource, "false"),
-			),
-		)
-	}()
+	// 	telemetry.IncrCounterWithLabels(
+	// 		[]string{"ibc", ibctransfertypes.ModuleName, "receive"},
+	// 		1,
+	// 		append(
+	// 			labels, telemetry.NewLabel(coretypes.LabelSource, "false"),
+	// 		),
+	// 	)
+	// }()
 
 	message := "ok"
 	log.Info(message)
