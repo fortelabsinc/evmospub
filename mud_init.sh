@@ -108,6 +108,11 @@ sed -i '/\[api\]/,/enable = false/s/enable = false/enable = true/' $PATH_HOME/co
 sed -i 's/0.0.0.0:9090/0.0.0.0:9092/g' $PATH_HOME/config/app.toml
 sed -i 's/0.0.0.0:26657/0.0.0.0:26659/g' $PATH_HOME/config/app.toml
 
+# Setup of simulator accounts
+echo "thing flag syrup zero cheese trip sock aisle bread page lift card mercy rare recipe evidence maid together eager dust cross margin history domain" | evmosd keys add simulator1 --recover
+echo "sport ridge shrug round gown tuna obtain verify frown chuckle arena glory bring weapon fragile base hen voice leader april sweet cannon caught sign" | evmosd keys add simulator2 --recover
+echo "mushroom square anchor into gap smooth ceiling narrow topic album include buzz inch matrix insane resist north asset square letter initial base stand obey" | evmosd keys add simulator3 --recover
+
 evmosd start $CHAIN_TRACE \
   --rpc.laddr "tcp://0.0.0.0:26657" \
   --rpc.pprof_laddr "127.0.0.1:6060" \
