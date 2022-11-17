@@ -84,3 +84,8 @@ echo "caution also galaxy match upset cheap slow aisle alley credit place share 
 
 # Created account "bob" with address "evmos1qy47vryjvtu0exwp8q0ufelgper6ag4kxud4h0" with mnemonic: "endless suspect clump job wagon control wonder project leave dream vendor inform cry tobacco lab youth prison cereal absurd bulb toy student tissue cabbage"
 echo "endless suspect clump job wagon control wonder project leave dream vendor inform cry tobacco lab youth prison cereal absurd bulb toy student tissue cabbage" | evmosd keys add bob --recover
+
+# Setup of simulator accounts
+echo "thing flag syrup zero cheese trip sock aisle bread page lift card mercy rare recipe evidence maid together eager dust cross margin history domain" | evmosd keys add simulator1 --recover
+echo "sport ridge shrug round gown tuna obtain verify frown chuckle arena glory bring weapon fragile base hen voice leader april sweet cannon caught sign" | evmosd keys add simulator2 --recover
+echo "mushroom square anchor into gap smooth ceiling narrow topic album include buzz inch matrix insane resist north asset square letter initial base stand obey" | evmosd keys add simulator3 --recover
