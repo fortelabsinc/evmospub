@@ -1,0 +1,28 @@
+version: "3.9"
+services:
+  # ---------------------------------------------------------------------------
+  # Setup the local EVMOS chain
+  # ---------------------------------------------------------------------------
+  evmos:
+    image: forte.io/evmos:latest
+    container_name: evmos
+    hostname: evmos
+    ports:
+      # P2P Port
+      - "26656:26656"
+      # Tendermint RPC Port
+      - "26657:26657"
+      # gRPC
+      - "9190:9090" # 9090 clashes with prometheus
+      # gRPC-WS
+      - "9191:9091"
+      # API
+      - "1317:1317"
+      # JSON-RPC Port
+      - "8645:8545" # purposely map to 8645 for ability to run in parallel
+      # JSON-RPC-WS Port
+      - "8646:8546"
+    networks:
+      open:
+        aliases:
+          - evmos
