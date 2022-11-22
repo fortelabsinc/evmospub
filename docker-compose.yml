@@ -1,7 +1,7 @@
 version: '3'
 services:
   node0:
-    image: gcr.io/devops-project-allqd0/evmos:fi8be-evmos-0.0.1-0
+    image: gcr.io/devops-project-allqd0/evmos:fi8be-0.0.1-0
     ports:
       - 26657 # rpc.laddr
       - 9090  # grpc 
