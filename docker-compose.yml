@@ -9,7 +9,21 @@ services:
       - 9091  # grpc-ws 
       - 1317  # api 
       - 8545  # json-rpc 
-      - 8546 # json-rpc-ws 
+      - 8546 # json-rpc-ws
+    environment:
+      - KEY_RING=${KEY_RING}
+      - KEY_NAME=${KEY_NAME}
+      - KEY_MNEMONIC=${KEY_MNEMONIC}
+      - CHAIN_LOGLEVEL=${CHAIN_LOGLEVEL}
+      - CHAIN_MONIKER=${CHAIN_MONIKER}
+      - CHAIN_ID=${CHAIN_ID}
+      - CHAIN_DENOM=${CHAIN_DENOM}
+      - CHAIN_MINGAS=${CHAIN_MINGAS}
+      - CHAIN_MAXGAS=${CHAIN_MAXGAS}
+      - CHAIN_BLOCKTIMEMS=${CHAIN_BLOCKTIMEMS}
+      - CHAIN_GENSUPPLY=${CHAIN_GENSUPPLY}
+      - CHAIN_VALIDATORSUPPLY=${CHAIN_VALIDATORSUPPLY}
+      - CHAIN_CLAIMAMOUNT=${CHAIN_CLAIMAMOUNT}
     networks:
       localnet:
         ipv4_address: 192.167.10.2
