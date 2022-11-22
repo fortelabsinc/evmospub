@@ -3,13 +3,13 @@ services:
   node0:
     image: gcr.io/devops-project-allqd0/evmos:fi8be-0.0.1-0
     ports:
-      - 26657 # rpc.laddr
-      - 9090  # grpc 
-      - 26656 # p2p 
-      - 9091  # grpc-ws 
-      - 1317  # api 
-      - 8545  # json-rpc 
-      - 8546 # json-rpc-ws
+      - "26657:26657" # rpc.laddr
+      - "9090:9090"  # grpc 
+      - "26656:26656" # p2p 
+      - "9091:9091"  # grpc-ws 
+      - "1317:1317"  # api 
+      - "8545:8545"  # json-rpc 
+      - "8546:8546" # json-rpc-ws
     environment:
       - KEY_RING=${KEY_RING}
       - KEY_NAME=${KEY_NAME}
