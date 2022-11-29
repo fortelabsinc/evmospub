@@ -1,0 +1,30 @@
+on: 
+  push:
+    branches:
+      ["fi8be-ci"]
+
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Label with TAG and SHORT_SHA
+        id: env
+        run: |
+          echo TAG_NAME=$(git tag --points-at HEAD) >> $GITHUB_OUTPUT
+          echo SHORT_SHA=$(git rev-parse --short HEAD) >> $GITHUB_OUTPUT
+      - name: Upload artifact
+        uses: RafikFarhad/push-to-gcr-github-action@v4.1
+        if:
+          ${{ steps.env.outputs.TAG_NAME != '' }} # && ${{ 
+        with:
+          gcloud_service_key: ${{ secrets.GCP_SERVICE_ACCOUNT }}  # B64 encoded contents of key file from GCR
+          registry: gcr.io
+          project_id: devops-project-allqd0
+          image_name: mudblocks
+          image_tag: ${{ steps.env.outputs.TAG_NAME }},${{ steps.env.outputs.SHORT_SHA }}
+          build_context: .
+          dockerfile: ./Dockerfile

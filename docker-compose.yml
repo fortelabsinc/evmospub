@@ -1,63 +1,55 @@
 version: '3'
-
 services:
   node0:
-    container_name: evmosnode0
-    image: "evmos/node"
+    image: gcr.io/devops-project-allqd0/evmos:fi8be-0.0.1-0
     ports:
-      - "26656-26657:26656-26657"
-    volumes:
-      - ./build/node0/evmosd:/evmos:Z
-    command:
-      - /evmosd start --home /evmos
-    networks:
-      localnet:
-        ipv4_address: 192.167.10.2
+      - "26657:26657" # rpc.laddr
+        #      - "9090:9090"  # grpc 
+      - "26656:26656" # p2p 
+      - "9091:9091"  # grpc-ws 
+      - "1317:1317"  # api 
+      - "8545:8545"  # json-rpc 
+      - "8546:8546" # json-rpc-ws
+    environment:
+      - KEY_RING=${KEY_RING}
+      - KEY_NAME=${KEY_NAME}
+      - KEY_MNEMONIC=${KEY_MNEMONIC}
+      - CHAIN_LOGLEVEL=${CHAIN_LOGLEVEL}
+      - CHAIN_MONIKER=${CHAIN_MONIKER}
+      - CHAIN_ID=${CHAIN_ID}
+      - CHAIN_DENOM=${CHAIN_DENOM}
+      - CHAIN_MINGAS=${CHAIN_MINGAS}
+      - CHAIN_MAXGAS=${CHAIN_MAXGAS}
+      - CHAIN_BLOCKTIMEMS=${CHAIN_BLOCKTIMEMS}
+      - CHAIN_GENSUPPLY=${CHAIN_GENSUPPLY}
+      - CHAIN_VALIDATORSUPPLY=${CHAIN_VALIDATORSUPPLY}
+      - CHAIN_CLAIMAMOUNT=${CHAIN_CLAIMAMOUNT}
+      - DB_BACKEND=${DB_BACKEND}
+      - SIZE=${SIZE}
+      - RECHECK=${RECHECK}
+      - MAX_TXS_BYTES=${MAX_TXS_BYTES}
+      - CACHE_SIZE=${CACHE_SIZE}
+      - MAX_TX_BYTES=${MAX_TX_BYTES}
+      - MAX_BATCH_BYTES=${MAX_BATCH_BYTES}
+      - TIMEOUT_PROPOSE=${TIMEOUT_PROPOSE}
+      - TIMEOUT_PROPOSE_DELTA=${TIMEOUT_PROPOSE_DELTA}
+      - TIMEOUT_PREVOTE=${TIMEOUT_PREVOTE}1s
+      - TIMEOUT_PREVOTE_DELTA=${TIMEOUT_PREVOTE_DELTA}
+      - TIMEOUT_PRECOMMIT=${TIMEOUT_PRECOMMIT}
+      - TIMEOUT_PRECOMMIT_DELTA=${TIMEOUT_PRECOMMIT_DELTA}
+      - TIMEOUT_COMMIT=${TIMEOUT_COMMIT}
+      - PEER_GOSSIP_SLEEP_DURATION=${PEER_GOSSIP_SLEEP_DURATION}
+      - PEER_QUERY_MAJ23_SLEEP_DURATION=${PEER_QUERY_MAJ23_SLEEP_DURATION}
+      - MAX_OPEN_CONNECTIONS=${MAX_OPEN_CONNECTIONS}
+      - RPC_MAX_BODY_BYTES=${RPC_MAX_BODY_BYTES}
 
-  node1:
-    container_name: evmosnode1
-    image: "evmos/node"
-    ports:
-      - "26659-26660:26656-26657"
-    volumes:
-      - ./build/node1/evmosd:/evmos:Z
-    command:
-      - /evmosd start --home /evmos
     networks:
-      localnet:
-        ipv4_address: 192.167.10.3
+      open:
+        aliases:
+          - evmos
 
-  node2:
-    container_name: evmosnode2
-    image: "evmos/node"
-    ports:
-      - "26661-26662:26656-26657"
-    volumes:
-      - ./build/node2/evmosd:/evmos:Z
-    command:
-      - /evmosd start --home /evmos
-    networks:
-      localnet:
-        ipv4_address: 192.167.10.4
-
-  node3:
-    container_name: evmosnode3
-    image: "evmos/node"
-    ports:
-      - "26663-26664:26656-26657"
-    volumes:
-      - ./build/node3/evmosd:/evmos:Z
-    command:
-      - /evmosd start --home /evmos
-    networks:
-      localnet:
-        ipv4_address: 192.167.10.5
 
 networks:
-  localnet:
+  open:
+    name: fi8_local_net
     driver: bridge
-    ipam:
-      driver: default
-      config:
-        -
-          subnet: 192.167.10.0/16
