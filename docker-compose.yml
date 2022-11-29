@@ -24,15 +24,32 @@ services:
       - CHAIN_GENSUPPLY=${CHAIN_GENSUPPLY}
       - CHAIN_VALIDATORSUPPLY=${CHAIN_VALIDATORSUPPLY}
       - CHAIN_CLAIMAMOUNT=${CHAIN_CLAIMAMOUNT}
+      - DB_BACKEND=${DB_BACKEND}
+      - SIZE=${SIZE}
+      - RECHECK=${RECHECK}
+      - MAX_TXS_BYTES=${MAX_TXS_BYTES}
+      - CACHE_SIZE=${CACHE_SIZE}
+      - MAX_TX_BYTES=${MAX_TX_BYTES}
+      - MAX_BATCH_BYTES=${MAX_BATCH_BYTES}
+      - TIMEOUT_PROPOSE=${TIMEOUT_PROPOSE}
+      - TIMEOUT_PROPOSE_DELTA=${TIMEOUT_PROPOSE_DELTA}
+      - TIMEOUT_PREVOTE=${TIMEOUT_PREVOTE}1s
+      - TIMEOUT_PREVOTE_DELTA=${TIMEOUT_PREVOTE_DELTA}
+      - TIMEOUT_PRECOMMIT=${TIMEOUT_PRECOMMIT}
+      - TIMEOUT_PRECOMMIT_DELTA=${TIMEOUT_PRECOMMIT_DELTA}
+      - TIMEOUT_COMMIT=${TIMEOUT_COMMIT}
+      - PEER_GOSSIP_SLEEP_DURATION=${PEER_GOSSIP_SLEEP_DURATION}
+      - PEER_QUERY_MAJ23_SLEEP_DURATION=${PEER_QUERY_MAJ23_SLEEP_DURATION}
+      - MAX_OPEN_CONNECTIONS=${MAX_OPEN_CONNECTIONS}
+      - RPC_MAX_BODY_BYTES=${RPC_MAX_BODY_BYTES}
+
     networks:
-      localnet:
-        ipv4_address: 192.167.10.2
+      open:
+        aliases:
+          - evmos
+
 
 networks:
-  localnet:
+  open:
+    name: fi8_local_net
     driver: bridge
-    ipam:
-      driver: default
-      config:
-        -
-          subnet: 192.167.10.0/16
